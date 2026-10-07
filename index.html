@@ -199,6 +199,40 @@
   const touch = { left: false, right: false };
   let jumpBuffer = 0;
 
+  // --- AUDIO SYNTHESIS START ---
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+
+  function sfx(freq1, freq2, type, duration) {
+    if (audioCtx.state === 'suspended') audioCtx.resume();
+    const osc = audioCtx.createOscillator(), gain = audioCtx.createGain();
+    osc.type = type;
+    osc.frequency.setValueAtTime(freq1, audioCtx.currentTime);
+    osc.frequency.exponentialRampToValueAtTime(freq2, audioCtx.currentTime + duration);
+    gain.gain.setValueAtTime(0.05, audioCtx.currentTime); // Volume
+    gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + duration);
+    osc.connect(gain); gain.connect(audioCtx.destination);
+    osc.start(); osc.stop(audioCtx.currentTime + duration);
+  }
+
+  function playJump() { sfx(300, 100, 'square', 0.2); }
+  function playFish() { sfx(800, 1200, 'square', 0.1); }
+
+  let bgmTimer;
+  const melody = [220, 277, 330, 440, 330, 277]; // Simple arpeggio
+  let note = 0;
+  function startBGM() {
+    if (bgmTimer) return;
+    bgmTimer = setInterval(() => {
+      sfx(melody[note], melody[note], 'triangle', 0.2);
+      note = (note + 1) % melody.length;
+    }, 200); // Speed of music
+  }
+  function stopBGM() {
+    clearInterval(bgmTimer);
+    bgmTimer = null;
+  }
+  // --- AUDIO SYNTHESIS END ---
+
   function random() {
     rng ^= rng << 13;
     rng ^= rng >>> 17;
@@ -308,11 +342,13 @@
     if (mode !== 'paused') reset();
     mode = 'play';
     $('overlay').style.display = 'none';
+    startBGM();
   }
 
   function pause() {
     if (mode === 'play') {
       mode = 'paused';
+      stopBGM();
       keys.clear();
       touch.left = touch.right = false;
       jumpBuffer = 0;
@@ -322,6 +358,7 @@
 
   function finish() {
     mode = 'over';
+    stopBGM();
     best = Math.max(best, score);
     try { localStorage.setItem('moonwhisker-best', String(best)); }
     catch (_) {}
@@ -420,6 +457,7 @@
       const firstJump = player.grounded || player.coyote > 0;
       player.jumps = firstJump ? 1 : 2;
       player.vy = firstJump ? -330 : -305;
+      playJump();
       player.grounded = false;
       player.coyote = 0;
       jumpBuffer = 0;
@@ -461,6 +499,7 @@
       if (overlaps(player, { x: f.x, y: fy, w: 20, h: 12 })) {
         f.taken = true;
         fishCount++;
+        playFish();
         burst(f.x + 10, fy + 5, '#86e0dd', 12);
         // Every 12 fish restores one heart.
         if (fishCount % 12 === 0 && player.hearts < 3) {
@@ -477,6 +516,7 @@
         e.dead = true;
         player.vy = -255;
         player.jumps = 1;
+        playJump();
         burst(e.x + 11, e.y + 8, '#c4afd7', 16);
       } else {
         hurt();
@@ -646,8 +686,7 @@
     ctx.fillRect(0, H - 8, W, 8);
   }
 
-  $('start').addEventListener('click', start);
-  $('pause').addEventListener('click', pause);
+  $('start').addEventListener('click', start);$('pause').addEventListener('click', pause);
 
   const movementKeys = [
     'ArrowLeft', 'ArrowRight', 'ArrowUp',
