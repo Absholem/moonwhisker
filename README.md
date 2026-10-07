@@ -6,7 +6,7 @@ AN ENDLESS PIXEL ADVENTURE
 A curious cat. A moonlit city. An endless trail of fish. 
 Moonwhisker is an endless pixel-art platformer where you explore freshly generated terrain, double-jump over gaps, and bounce on dust bunnies[cite: 1]. 
 
-**Tip:** Every 12 fish restores a heart[cite: 1].
+**Tip:** Every 12 fish restores a heart.
 
 ## Controls
 * **Move:** `A` / `D` or `←` / `→`
